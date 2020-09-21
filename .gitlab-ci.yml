@@ -13,7 +13,7 @@ docker-deploy:
     - docker run -d -p 8000:8080 --name cicd-demo cicd-demo
   tags:
     # 执行Job的服务器
-    - taggg
+    - win10
   only:
     # 只有在master分支才会执行
     - master
