@@ -1,26 +1,36 @@
-image: maven:latest
+image: maven:3-jdk-8
 
-# 本次构建的阶段：build package
+cache:
+  paths:
+    - ./.m2/repository
+
+    # 本次构建的阶段：build package
 stages:
-- build
-- package
-- deploy
+  - build
+  - package
+  - deploy
 # 构建 Job
 build:
   stage: build
   tags:
-  - win10
+    - win10
   script:
-  - echo "=============== 开始编译构建任务 ==============="
-  - mvn compile
+    - echo "=============== 开始编译构建任务 ==============="
+    - mvn compile
+  artifacts:
+    paths:
+      - target/
 # 打包
 package:
   stage: package
   tags:
-  - win10
+    - win10
   script:
-  - echo "=============== 开始打包任务  ==============="
-  - mvn package -Dmaven.test.skip=true
+    - echo "=============== 开始打包任务  ==============="
+    - mvn package -Dmaven.test.skip=true
+  artifacts:
+    paths:
+      - target/
 # 部署
 deploy:
   stage: deploy
@@ -30,5 +40,14 @@ deploy:
     - echo "=============== 开始部署任务  ==============="
     # - java -jar target\cicdd-0.0.1-SNAPSHOT.jar
     - cd target
+    # 删除已经在运行的容器
+    - if [ $(docker ps -aq --filter name= cicdd-democ) ]; then docker rm -f cicdd-democ;fi
+    # 删除已经存在的镜像
+    - if [ $(docker images --filter name= cicdd) ]; then docker rmi -f cicdd;fi
+    # 编译镜像
     - docker build -t cicdd .
+    # 运行容器
     - docker run -d -p 8888:8080 --name cicdd-democ cicdd
+  artifacts:
+    paths:
+      - target/
