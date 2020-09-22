@@ -3,7 +3,7 @@ image: maven:3-jdk-8
 cache:
   paths:
     - ./.m2/repository
-    - target/
+  key: "$CI_BUILD_REF_NAME"
 
     # 本次构建的阶段：build package
 stages:
