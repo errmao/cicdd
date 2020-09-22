@@ -34,14 +34,12 @@ deploy:
     - win10
   script:
     - echo "=============== 开始部署任务  ==============="
-    # - java -jar target\cicdd-0.0.1-SNAPSHOT.jar
-    - cd target
     # 删除已经在运行的容器
     - if [ $(docker ps -aq --filter name= cicdd-democ) ]; then docker rm -f cicdd-democ;fi
     # 删除已经存在的镜像
     - if [ $(docker images --filter name= cicdd) ]; then docker rmi -f cicdd;fi
     # 编译镜像
-    - docker build -t cicdd .
+    - docker build -t cicdd ./target
     # 运行容器
     - docker run -d -p 8888:8080 --name cicdd-democ cicdd
   artifacts:
