@@ -1,50 +1,58 @@
-image: maven:3-jdk-8
+# 设置 Maven 阿里云镜像 也可以在 /root/.m2 目录中编辑 settings.xml文件 添加阿里云镜像信息
+before_script:
+  - rm -rf /root/.m2/settings.xml
+  - echo -e "<?xml version=\""1.0\"" encoding=\""UTF-8\""?><settings xmlns=\""http://maven.apache.org/SETTINGS/1.0.0\"" xmlns:xsi=\""http://www.w3.org/2001/XMLSchema-instance\"" xsi:schemaLocation=\""http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd\""><mirrors><mirror><id>alimaven</id><name>aliyun maven</name><url>http://maven.aliyun.com/nexus/content/groups/public/</url><mirrorOf>central</mirrorOf></mirror></mirrors></settings>"> /root/.m2/settings.xml
 
-services:
-  - docker:19.03.7-dind
+# 使用docker最新镜像
+image: docker:latest
 
+# 定义job执行使用的环境变量
+variables:
+  DOCKER_DRIVER: overlay2
+  # DOCKER_HOST: tcp://192.168.2.132:2375  # docker host，本地可不写
+  # 镜像名称
+  TAG: cicdd-v1.0.0
+  # 容器名称
+  CONTAINER_NAME: hello-cicd
+  PORT: 8765
+
+# 配置缓存，缓存maven下载的依赖
 cache:
   paths:
-    - ./.m2/repository
-  key: "$CI_BUILD_REF_NAME"
+    - .m2/repository
 
-    # 本次构建的阶段：build package
+# 配置需要用到的额外的服务。docker:dind，用于在 docker 中运行 docker 的一种东西，在项目的构建中需要。    
+services:
+  - docker:dind
+
 stages:
-  - build
   - package
   - deploy
-# 构建 Job
-build:
-  stage: build
-  tags:
-    - win10
-  script:
-    - echo "=============== 开始编译构建任务 ==============="
-    - mvn compile
-# 打包
-package:
-  stage: package
-  tags:
-    - win10
-  script:
-    - echo "=============== 开始打包任务  ==============="
-    - mvn package -Dmaven.test.skip=true
 
-# 部署
-deploy:
-  stage: deploy
+# 定义的 Jobs 之一，用于构建 jar 包。内部又引入 maven 镜像来处理，负责执行 package 这一流程。 
+maven-package:
+  image: maven:3.6.3-jdk-8
   tags:
-    - win10
+    - tiny
+  stage: package
   script:
-    - echo "=============== 开始部署任务  ==============="
-    # 删除已经在运行的容器
-    - if [ $(docker ps -aq --filter name= cicdd-democ) ]; then docker rm -f cicdd-democ;fi
-    # 删除已经存在的镜像
-    - if [ $(docker images --filter name= cicdd) ]; then docker rmi -f cicdd;fi
-    # 编译镜像
-    - docker build -t cicdd ./target
-    # 运行容器
-    - docker run -d -p 8888:8080 --name cicdd-democ cicdd
+    - mvn clean package -Dmaven.test.skip=true
+  # 定义哪些文件需要在下一个job使用
   artifacts:
     paths:
-      - target/
+      - target/*.jar
+
+# 定义的 Jobs 之一，用于构建 Docker 镜像。负责执行 deploy 这一流程。具体执行 build 和 run。
+build-master:
+  tags:
+    - tiny
+  stage: deploy
+  script:
+    # 构件镜像
+    - docker build -t $TAG .
+    # 删除容器
+    - docker rm -f $CONTAINER_NAME || true
+    # 运行容器
+    - docker run -d --name $CONTAINER_NAME -p $PORT:8080 $TAG
+  only:
+    - master
