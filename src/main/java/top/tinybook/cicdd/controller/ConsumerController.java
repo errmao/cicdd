@@ -21,6 +21,6 @@ public class ConsumerController {
 
     @GetMapping("action2")
     public String action2() {
-        return new Date().toString() + "=======d";
+        return new Date().toString() + "=======d2222222";
     }
 }
