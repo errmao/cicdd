@@ -54,5 +54,7 @@ build-master:
     - docker rm -f $CONTAINER_NAME || true
     # 运行容器
     - docker run -d --name $CONTAINER_NAME -p $PORT:8080 $TAG
+    # 删除none镜像
+    - docker images|grep none|awk '{print $3}'|xargs docker rmi
   only:
     - master
