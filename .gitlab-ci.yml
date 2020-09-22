@@ -49,7 +49,7 @@ build-master:
   stage: deploy
   script:
     # 构件镜像
-    - docker build -t $TAG ./target
+    - docker build -t $TAG -f /target/Dockerfile .
     # 删除容器
     - docker rm -f $CONTAINER_NAME || true
     # 运行容器
